@@ -134,7 +134,7 @@ class Triples
         if( $q->execute() )
             $hi = $q->fetchAll();
 
-        return isset( $hi[0][$r] ) ? (int)$hi[0][$r] : false;
+        return isset( $hi[0][0] ) ? (int)$hi[0][0] : false;
     }
 
     public function merge( $vvvs )
