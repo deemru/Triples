@@ -17,6 +17,7 @@ class Triples
         {
             $this->db = &$db->db;
             $this->parent = &$db;
+            $db->childs = ( isset( $db->childs ) ? $db->childs : 0 ) + 1;
         }
 
         $this->name = $name;
@@ -137,13 +138,13 @@ class Triples
         return isset( $hi[0][0] ) ? (int)$hi[0][0] : false;
     }
 
-    public function merge( $vvvs )
+    public function merge( $vvvs, $kv = false )
     {
         if( !isset( $this->cache ) )
         {
             $content = '';
             $values = '';
-            $n = count( $vvvs[0] );
+            $n = $kv ? 2 : count( $vvvs[0] );
             for( $i = 0; $i < $n; $i++ )
             {
                 $content .= ( $i ? ', ' : '' ) . 'r' . $i;
@@ -155,8 +156,12 @@ class Triples
             $this->cacheClear = 'DELETE FROM cache.' . $this->name;
         }
 
-        foreach( $vvvs as $vvv )
-            $this->cache->execute( $vvv );
+        if( $kv )
+            foreach( $vvvs as $k => $v )
+                $this->cache->execute( [ $k, $v ] );
+        else
+            foreach( $vvvs as $vvv )
+                $this->cache->execute( $vvv );
 
         return $this->db->exec( $this->cacheMove ) && $this->db->exec( $this->cacheClear );
     }
