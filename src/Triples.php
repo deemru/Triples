@@ -4,28 +4,36 @@ namespace deemru;
 
 class Triples
 {
-    public function __construct( &$db, $name, $writable = false, $types = [], $indexes = [] )
+    public \PDO $db;
+    public string $name;
+    public bool $writable;
+
+    public function __construct( $db, $name, $writable = false, $types = [], $indexes = [] )
     {
         if( is_string( $db ) )
         {
-            $this->db = new \PDO( "sqlite:$db" );
+            $this->db = new \PDO( $db );
             $this->db->setAttribute( \PDO::ATTR_ERRMODE, \PDO::ERRMODE_WARNING );
             $this->db->setAttribute( \PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_NUM );
+            $this->db->setAttribute( \PDO::ATTR_STRINGIFY_FETCHES, false );
             $this->db->exec( 'PRAGMA temp_store = MEMORY' );
         }
         else
         {
-            $this->db = &$db->db;
-            $this->parent = &$db;
+            if( isset( $db->parent ) )
+                $db = $db->parent;
+            $this->db = $db->db;
+            $this->parent = $db;
             $db->childs = ( isset( $db->childs ) ? $db->childs : 0 ) + 1;
         }
 
         $this->name = $name;
+        $this->writable = $writable;
 
         if( $writable )
         {
             if( !isset( $this->parent ) )
-            {                
+            {
                 $this->db->exec( 'PRAGMA synchronous = NORMAL' );
                 $this->db->exec( 'PRAGMA journal_mode = WAL' );
                 $this->db->exec( 'PRAGMA journal_size_limit = 0' );
@@ -33,7 +41,7 @@ class Triples
                 $this->db->exec( 'PRAGMA optimize' );
 
                 $this->db->exec( "ATTACH DATABASE ':memory:' AS cache" );
-            }            
+            }
 
             $content = '';
             $n = count( $types );
@@ -56,6 +64,15 @@ class Triples
                 if( $indexes[$i] )
                     $this->db->exec( 'CREATE INDEX IF NOT EXISTS ' . $name . '_r' . $i . '_index ON ' . $name . '( r' . $i . ' )' );
         }
+    }
+
+    public function __destruct()
+    {
+        if( $this->writable )
+            $this->db->exec( 'DROP TABLE cache.' . $this->name );
+
+        if( isset( $this->parent ) )
+            --$this->parent->childs;
     }
 
     public function name()
@@ -118,7 +135,7 @@ class Triples
     {
         if( !isset( $this->uno[$r] ) )
             $this->uno[$r] = $this->db->prepare( 'SELECT * FROM ' . $this->name . ' WHERE r' . $r . ' = ? LIMIT 1' );
-        
+
         $q = $this->uno[$r];
         if( $q->execute( [ $v ] ) )
             $uno = $q->fetchAll();
@@ -130,7 +147,7 @@ class Triples
     {
         if( !isset( $this->hi[$r] ) )
             $this->hi[$r] = $this->db->prepare( 'SELECT r' . $r . ' FROM ' . $this->name . ' ORDER BY r' . $r . ' DESC LIMIT 1' );
-        
+
         $q = $this->hi[$r];
         if( $q->execute() )
             $hi = $q->fetchAll();

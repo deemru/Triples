@@ -2,9 +2,10 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 use deemru\Triples;
+use deemru\KV;
 
 $dbpath = __DIR__ . '/triples.sqlite';
-$triples = new Triples( $dbpath, 'triples', true, [ 'INTEGER PRIMARY KEY', 'TEXT UNIQUE', 'INTEGER' ], [ 0, 0, 1 ] );
+$triples = new Triples( 'sqlite:' . $dbpath, 'triples', true, [ 'INTEGER PRIMARY KEY', 'TEXT UNIQUE', 'INTEGER' ], [ 0, 0, 1 ] );
 
 $r0 = 1;
 $r1 = 'Hello, World!';
@@ -23,6 +24,8 @@ if( !$triples->query( 'DELETE FROM ' . $triples->name ) ||
     $triples->getUno( 1, $r1 ) !== false ||
     $triples->getUno( 0, $r0 ) !== false )
     exit( 1 );
+
+$kvro = ( new KV( true ) )->setStorage( $triples, 'triples', false );
 
 class tester
 {
@@ -69,13 +72,13 @@ class tester
     }
 }
 
-echo "   TEST: Pairs\n";
+echo "   TEST: Triples\n";
 $t = new tester();
 
-for( $iters = 50000; $iters >= 100; $iters = (int)( $iters / 10 ) )
+for( $iters = 70000; $iters >= 100; $iters = (int)( $iters / 10 ) )
 {
     $data = [];
-    $t->pretest( "fill PHP data ($iters)" );
+    $t->pretest( "$iters ..." );
     {
         for( $i = 0; $i < $iters; $i++ )
         {
@@ -84,20 +87,20 @@ for( $iters = 50000; $iters >= 100; $iters = (int)( $iters / 10 ) )
             $r2 = crc32( $r1 );
             $data[] = [ $r0, $r1, $r2 ];
         }
-        
+
         $t->test( count( $data ) === $iters );
     }
 
     $triples->query( 'DELETE FROM ' . $triples->name );
 
-    $t->pretest( "data to Pairs ($iters) (write) (commit)" );
+    $t->pretest( "Triples ($iters) (write) (commit)" );
     {
         $triples->begin();
         $result = $triples->merge( $data );
         $triples->commit();
     }
     $t->test( $result !== false );
-    $t->pretest( "data to Pairs ($iters) (read)  (commit)" );
+    $t->pretest( "Triples ($iters) (read) (triples)" );
     {
         foreach( $data as $r )
         {
@@ -114,17 +117,94 @@ for( $iters = 50000; $iters >= 100; $iters = (int)( $iters / 10 ) )
 
     $triples->query( 'DELETE FROM ' . $triples->name );
 
-    $t->pretest( "data to Pairs ($iters) (write) (merge)" );
+    $t->pretest( "Triples ($iters) (write) (merge)" );
     {
         $result = $triples->merge( $data );
     }
     $t->test( $result !== false );
-    $t->pretest( "data to Pairs ($iters) (read)  (merge)" );
+    $t->pretest( "Triples ($iters) (read) (kv)" );
     {
         foreach( $data as $r )
         {
-            if( $triples->getUno( 1, $r[1] )[2] != $r[2] ||
-                $triples->getUno( 0, $r[0] )[1] !== $r[1] )
+            if( $kvro->getKeyByValue( $r[1] ) !== $r[0] ||
+                $kvro->getValueByKey( $r[0] ) !== $r[1] )
+            {
+                $result = false;
+                break;
+            }
+        }
+
+        $t->test( $result !== false );
+    }
+}
+
+$t->finish();
+
+echo "\n   TEST: KV\n";
+$t = new tester();
+
+for( $adapter = 0; $adapter < 2; ++$adapter )
+for( $iters = 70000; $iters >= 100; $iters = (int)( $iters / 10 ) )
+{
+    if( $adapter === 0 )
+    {
+        $kvRead = null;
+        $kvWrite = null;
+    }
+    else
+    {
+        $kvRead = function( $data ){ return bin2hex( $data ); };
+        $kvWrite = function( $data ){ return hex2bin( $data ); };
+    }
+
+    unset( $kv );
+    $kv = ( new KV( true ) )->setStorage( $triples, 'kv', true )->setValueAdapter( $kvRead, $kvWrite );
+    unset( $kvro );
+    $kvro = ( new KV( false ) )->setStorage( $kv->db, 'kv', false )->setValueAdapter( $kvRead, $kvWrite );
+
+    $data = [];
+    $t->pretest( "$iters ..." );
+    {
+        for( $i = 0; $i < $iters; $i++ )
+        {
+            $r0 = $i;
+            $r1 = sha1( $i );
+            $r2 = crc32( $r1 );
+            $data[] = [ $r0, $r1, $r2 ];
+        }
+
+        $t->test( count( $data ) === $iters );
+    }
+
+    $kv->db->query( 'DELETE FROM ' . $kv->db->name );
+
+    $t->pretest( "KV ($iters) ($adapter) (write)" );
+    {
+        foreach( $data as $r )
+            $kv->setKeyValue( $r[0], $r[1] );
+        $result = $kv->merge();
+    }
+    $t->test( $result !== false );
+
+    $t->pretest( "KV ($iters) ($adapter) (read) (no cache)" );
+    {
+        foreach( $data as $r )
+        {
+            if( $kvro->getValueByKey( $r[0] ) !== $r[1] )
+            {
+                $result = false;
+                break;
+            }
+        }
+
+        $t->test( $result !== false );
+    }
+
+    $t->pretest( "KV ($iters) ($adapter) (read) (cached)" );
+    {
+        foreach( $data as $r )
+        {
+            if( $kvro->getValueByKey( $r[0] ) !== $r[1] )
             {
                 $result = false;
                 break;
