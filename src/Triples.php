@@ -5,10 +5,6 @@ use \PDO;
 
 class Triples
 {
-    public PDO $db;
-    public string $name;
-    public bool $writable;
-
     public function __construct( $db, $name, $writable = false, $types = [], $indexes = [] )
     {
         if( is_string( $db ) )

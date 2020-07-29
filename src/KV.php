@@ -6,8 +6,6 @@ require_once __DIR__ . '/Triples.php';
 
 class KV
 {
-    public Triples $db;
-
     public function __construct( $bidirectional = false )
     {
         $this->kv = [];
