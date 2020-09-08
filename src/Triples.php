@@ -177,7 +177,9 @@ class Triples
             foreach( $vvvs as $vvv )
                 $this->cache->execute( $vvv );
 
-        return $this->db->exec( $this->cacheMove ) && $this->db->exec( $this->cacheClear );
+        $n = $this->db->exec( $this->cacheMove );
+        $this->db->exec( $this->cacheClear );
+        return $n;
     }
 
     public function query( $query, $values = null )
