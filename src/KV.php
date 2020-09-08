@@ -6,12 +6,13 @@ require_once __DIR__ . '/Triples.php';
 
 class KV
 {
-    public function __construct( $bidirectional = false )
+    public function __construct( $bidirectional = false, $hits = false )
     {
         $this->kv = [];
         if( $bidirectional )
             $this->vk = [];
-        $this->hits = [];
+        if( $hits )
+            $this->hits = [];
     }
 
     public function __destruct()
@@ -26,7 +27,8 @@ class KV
         $this->kv = [];
         if( isset( $this->vk ) )
             $this->vk = [];
-        $this->hits = [];
+        if( isset( $this->hits ) )
+            $this->hits = [];
     }
 
     public function setStorage( $db, $name, $writable, $keyType = 'INTEGER PRIMARY KEY', $valueType = 'TEXT UNIQUE' )
@@ -77,7 +79,8 @@ class KV
         $this->kv[$key] = $value;
         if( isset( $this->vk ) )
             $this->vk[$value] = $key;
-        $this->hits[$key] = 1;
+        if( isset( $this->hits ) )
+            $this->hits[$key] = 1;
 
         if( isset( $this->recs ) )
             $this->recs[$key] = $value;
@@ -92,7 +95,8 @@ class KV
         if( isset( $this->vk[$value] ) )
         {
             $key = $this->vk[$value];
-            ++$this->hits[$key];
+            if( isset( $this->hits ) )
+                ++$this->hits[$key];
             return $key;
         }
 
@@ -107,7 +111,8 @@ class KV
 
         $this->kv[$key] = $value;
         $this->vk[$value] = $key;
-        $this->hits[$key] = 1;
+        if( isset( $this->hits ) )
+            $this->hits[$key] = 1;
 
         return $key;
     }
@@ -116,7 +121,8 @@ class KV
     {
         if( isset( $this->kv[$key] ) )
         {
-            ++$this->hits[$key];
+            if( isset( $this->hits ) )
+                ++$this->hits[$key];
             return $this->kv[$key];
         }
 
@@ -138,7 +144,8 @@ class KV
         $this->kv[$key] = $value;
         if( isset( $this->vk ) )
             $this->vk[$value] = $key;
-        $this->hits[$key] = 1;
+        if( isset( $this->hits ) )
+            $this->hits[$key] = 1;
 
         return $value;
     }
@@ -157,6 +164,8 @@ class KV
 
     public function cacheHalving()
     {
+        assert( isset( $this->hits ) );
+
         $this->merge();
 
         $kv = [];
