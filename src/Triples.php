@@ -33,11 +33,10 @@ class Triples
             {
                 $this->db->exec( 'PRAGMA synchronous = NORMAL' );
                 $this->db->exec( 'PRAGMA journal_mode = WAL' );
-                $this->db->exec( 'PRAGMA journal_size_limit = 0' );
-                $this->db->exec( 'PRAGMA wal_checkpoint' );
+                $this->db->exec( 'PRAGMA journal_size_limit = 2097152' );
+                $this->db->exec( 'PRAGMA wal_autocheckpoint = 512' );
                 $this->db->exec( 'PRAGMA optimize' );
-
-                $this->db->exec( "ATTACH DATABASE ':memory:' AS cache" );
+                $this->db->exec( 'PRAGMA wal_checkpoint' );
             }
 
             $content = '';
@@ -46,15 +45,6 @@ class Triples
                 $content .= ( $i ? ', ' : '' ) . 'r' . $i . ' ' . $types[$i];
 
             $this->db->exec( 'CREATE TABLE IF NOT EXISTS ' . $name . '( ' . $content . ' )' );
-
-            for( $i = 0; $i < $n; $i++ )
-                $types[$i] = false !== strpos( strtoupper( $types[$i] ), 'INTEGER' ) ? 'INTEGER' : 'BLOB';
-
-            $content = '';
-            for( $i = 0; $i < $n; $i++ )
-                $content .= ( $i ? ', ' : '' ) . 'r' . $i . ' ' . $types[$i];
-
-            $this->db->exec( 'CREATE TABLE cache.' . $name . '( ' . $content . ' )' );
 
             $n = count( $indexes );
             for( $i = 0; $i < $n; $i++ )
@@ -65,9 +55,6 @@ class Triples
 
     public function __destruct()
     {
-        if( $this->writable )
-            $this->db->exec( 'DROP TABLE cache.' . $this->name );
-
         if( isset( $this->parent ) )
             --$this->parent->childs;
     }
@@ -98,7 +85,7 @@ class Triples
         else
             unset( $this->proc );
 
-        return $this->db->commit() && $this->db->exec( 'PRAGMA wal_checkpoint' );
+        return $this->db->commit();
     }
 
     public function rollback()
@@ -154,7 +141,7 @@ class Triples
 
     public function merge( $vvvs, $kv = false )
     {
-        if( !isset( $this->cache ) )
+        if( !isset( $this->merge ) )
         {
             $content = '';
             $values = '';
@@ -165,21 +152,15 @@ class Triples
                 $values .= ( $i ? ', ' : '' ) . '?';
             }
 
-            $this->cache = $this->db->prepare( 'INSERT INTO cache.' . $this->name . '( '. $content . ' ) VALUES( ' . $values . ' )' );
-            $this->cacheMove = 'INSERT OR REPLACE INTO ' . $this->name . ' SELECT * FROM cache.' . $this->name;
-            $this->cacheClear = 'DELETE FROM cache.' . $this->name;
+            $this->merge = $this->db->prepare( 'INSERT OR REPLACE INTO ' . $this->name . '( '. $content . ' ) VALUES( ' . $values . ' )' );
         }
 
         if( $kv )
             foreach( $vvvs as $k => $v )
-                $this->cache->execute( [ $k, $v ] );
+                $this->merge->execute( [ $k, $v ] );
         else
             foreach( $vvvs as $vvv )
-                $this->cache->execute( $vvv );
-
-        $n = $this->db->exec( $this->cacheMove );
-        $this->db->exec( $this->cacheClear );
-        return $n;
+                $this->merge->execute( $vvv );
     }
 
     public function query( $query, $values = null )
