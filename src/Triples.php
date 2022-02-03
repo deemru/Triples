@@ -9,11 +9,16 @@ class Triples
     {
         if( is_string( $db ) )
         {
-            $this->db = new PDO( $db );
-            $this->db->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING );
-            $this->db->setAttribute( PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_NUM );
-            $this->db->setAttribute( PDO::ATTR_STRINGIFY_FETCHES, false );
-            $this->db->exec( 'PRAGMA temp_store = MEMORY' );
+            $this->db = new PDO( $db, null, null, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_WARNING,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_NUM,
+                PDO::ATTR_STRINGIFY_FETCHES => false,
+            ] );
+            $this->db->exec( '
+                PRAGMA temp_store = MEMORY;
+                PRAGMA synchronous = NORMAL;
+                PRAGMA journal_mode = WAL;
+            ' );
         }
         else
         {
@@ -31,12 +36,12 @@ class Triples
         {
             if( !isset( $this->parent ) )
             {
-                $this->db->exec( 'PRAGMA synchronous = NORMAL' );
-                $this->db->exec( 'PRAGMA journal_mode = WAL' );
-                $this->db->exec( 'PRAGMA journal_size_limit = 2097152' );
-                $this->db->exec( 'PRAGMA wal_autocheckpoint = 512' );
-                $this->db->exec( 'PRAGMA optimize' );
-                $this->db->exec( 'PRAGMA wal_checkpoint' );
+                $this->db->exec( '
+                    PRAGMA journal_size_limit = 2097152;
+                    PRAGMA wal_autocheckpoint = 512;
+                    PRAGMA optimize;
+                    PRAGMA wal_checkpoint;
+                ' );
             }
 
             $content = '';
