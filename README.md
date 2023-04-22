@@ -1,6 +1,6 @@
 # Triples
 
-[![packagist](https://img.shields.io/packagist/v/deemru/triples.svg)](https://packagist.org/packages/deemru/triples) [![php-v](https://img.shields.io/packagist/php-v/deemru/triples.svg)](https://packagist.org/packages/deemru/triples)  [![travis](https://img.shields.io/travis/deemru/Triples.svg?label=travis)](https://travis-ci.org/deemru/Triples) [![codacy](https://img.shields.io/codacy/grade/1b5145f44cdd47bb8117c6d08b013ff0.svg?label=codacy)](https://app.codacy.com/project/deemru/Triples/dashboard) [![license](https://img.shields.io/packagist/l/deemru/triples.svg)](https://packagist.org/packages/deemru/triples)
+[![packagist](https://img.shields.io/packagist/v/deemru/triples.svg)](https://packagist.org/packages/deemru/triples) [![php-v](https://img.shields.io/packagist/php-v/deemru/triples.svg)](https://packagist.org/packages/deemru/triples)   [![GitHub](https://img.shields.io/github/actions/workflow/status/deemru/Triples/php.yml?label=github%20actions)](https://github.com/deemru/Triples/actions/workflows/php.yml) [![codacy](https://img.shields.io/codacy/grade/94562bc5ffab447a9a8f0045502c24a6.svg?label=codacy)](https://app.codacy.com/gh/deemru/Triples/files) [![license](https://img.shields.io/packagist/l/deemru/triples.svg)](https://packagist.org/packages/deemru/triples)
 
 [Triples](https://github.com/deemru/Triples) implements a simple flexible layer for [SQLite](https://en.wikipedia.org/wiki/SQLite) storage.
 

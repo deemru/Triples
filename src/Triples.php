@@ -5,10 +5,22 @@ use \PDO;
 
 class Triples
 {
-    public function __construct( $db, $name, $writable = false, $types = [], $indexes = [] )
+    public $db;
+    public $childs;
+    private $parent;
+    private $name;
+    private $proc;
+    private $uno;
+    private $merge;
+    private $q;
+    private $hi;
+
+    public function __construct( $db, $name = '', $writable = false, $types = [], $indexes = [] )
     {
         if( is_string( $db ) )
         {
+            if( substr( $db, 0, 7) !== 'sqlite:' )
+                $db = 'sqlite:' . $db;
             $this->db = new PDO( $db, null, null, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_WARNING,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_NUM,
@@ -30,7 +42,6 @@ class Triples
         }
 
         $this->name = $name;
-        $this->writable = $writable;
 
         if( $writable )
         {
@@ -44,8 +55,11 @@ class Triples
                 ' );
             }
 
-            $content = '';
             $n = count( $types );
+            if( $n === 0 )
+                return;
+
+            $content = '';
             for( $i = 0; $i < $n; $i++ )
                 $content .= ( $i ? ', ' : '' ) . 'r' . $i . ' ' . $types[$i];
 

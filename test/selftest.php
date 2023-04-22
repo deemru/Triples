@@ -5,7 +5,9 @@ use deemru\Triples;
 use deemru\KV;
 
 $dbpath = __DIR__ . '/triples.sqlite';
-$triples = new Triples( 'sqlite:' . $dbpath, 'triples', true, [ 'INTEGER PRIMARY KEY', 'TEXT UNIQUE', 'INTEGER' ], [ 0, 0, 1 ] );
+if( file_exists( $dbpath ) )
+    unlink( $dbpath );
+$triples = new Triples( $dbpath, 'triples', true, [ 'INTEGER PRIMARY KEY', 'TEXT UNIQUE', 'INTEGER' ], [ 0, 0, 1 ] );
 
 $r0 = 1;
 $r1 = 'Hello, World!';
@@ -19,7 +21,7 @@ if( $triples->getUno( 2, $r2 )[0] != $r0 ||
     $triples->getUno( 0, $r0 )[1] !== $r1 )
     exit( 1 );
 
-if( !$triples->query( 'DELETE FROM ' . $triples->name ) ||
+if( !$triples->query( 'DELETE FROM ' . $triples->name() ) ||
     $triples->getUno( 2, $r2 ) !== false ||
     $triples->getUno( 1, $r1 ) !== false ||
     $triples->getUno( 0, $r0 ) !== false )
@@ -34,6 +36,7 @@ class tester
     private $depth = 0;
     private $info = [];
     private $start = [];
+    private $init;
 
     public function pretest( $info )
     {
@@ -91,7 +94,7 @@ for( $iters = 70000; $iters >= 100; $iters = (int)( $iters / 10 ) )
         $t->test( count( $data ) === $iters );
     }
 
-    $triples->query( 'DELETE FROM ' . $triples->name );
+    $triples->query( 'DELETE FROM ' . $triples->name() );
 
     $t->pretest( "Triples ($iters) (write) (commit)" );
     {
@@ -115,7 +118,7 @@ for( $iters = 70000; $iters >= 100; $iters = (int)( $iters / 10 ) )
         $t->test( $result !== false );
     }
 
-    $triples->query( 'DELETE FROM ' . $triples->name );
+    $triples->query( 'DELETE FROM ' . $triples->name() );
 
     $t->pretest( "Triples ($iters) (write) (merge)" );
     {
@@ -176,7 +179,7 @@ for( $iters = 70000; $iters >= 100; $iters = (int)( $iters / 10 ) )
         $t->test( count( $data ) === $iters );
     }
 
-    $kv->db->query( 'DELETE FROM ' . $kv->db->name );
+    $kv->db->query( 'DELETE FROM ' . $kv->db->name() );
 
     $t->pretest( "KV ($iters) ($adapter) (write)" );
     {
