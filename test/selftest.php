@@ -99,7 +99,7 @@ for( $iters = 70000; $iters >= 100; $iters = (int)( $iters / 10 ) )
     $t->pretest( "Triples ($iters) (write) (commit)" );
     {
         $triples->begin();
-        $result = $triples->merge( $data );
+        $result = $triples->merge( $data ) === null;
         $triples->commit();
     }
     $t->test( $result !== false );
@@ -122,7 +122,7 @@ for( $iters = 70000; $iters >= 100; $iters = (int)( $iters / 10 ) )
 
     $t->pretest( "Triples ($iters) (write) (merge)" );
     {
-        $result = $triples->merge( $data );
+        $result = $triples->merge( $data ) === null;
     }
     $t->test( $result !== false );
     $t->pretest( "Triples ($iters) (read) (kv)" );
@@ -185,7 +185,7 @@ for( $iters = 70000; $iters >= 100; $iters = (int)( $iters / 10 ) )
     {
         foreach( $data as $r )
             $kv->setKeyValue( $r[0], $r[1] );
-        $result = $kv->merge();
+        $result = $kv->merge() === null;
     }
     $t->test( $result !== false );
 

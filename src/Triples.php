@@ -85,37 +85,31 @@ class Triples
 
     public function begin()
     {
-        if( isset( $this->proc ) || isset( $this->parent->proc ) )
-            return;
         if( isset( $this->parent ) )
-            $this->parent->proc = true;
-        else
-            $this->proc = true;
-
+            return $this->parent->begin();
+        if( isset( $this->proc ) )
+            return;
+        $this->proc = true;
         return $this->db->beginTransaction();
     }
 
     public function commit()
     {
-        if( !isset( $this->proc ) && !isset( $this->parent->proc ) )
-            return;
         if( isset( $this->parent ) )
-            unset( $this->parent->proc );
-        else
-            unset( $this->proc );
-
+            return $this->parent->commit();
+        if( !isset( $this->proc ) )
+            return;
+        $this->proc = null;
         return $this->db->commit();
     }
 
     public function rollback()
     {
-        if( !isset( $this->proc ) && !isset( $this->parent->proc ) )
-            return;
         if( isset( $this->parent ) )
-            unset( $this->parent->proc );
-        else
-            unset( $this->proc );
-
+            return $this->parent->rollback();
+        if( !isset( $this->proc ) )
+            return;
+        $this->proc = null;
         return $this->db->rollBack();
     }
 

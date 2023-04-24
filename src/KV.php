@@ -69,17 +69,14 @@ class KV
 
     public function merge()
     {
-        $merged = true;
         if( isset( $this->recs ) && count( $this->recs ) )
         {
             if( isset( $this->w ) )
                 foreach( $this->recs as $key => $value )
                     $this->recs[$key] = $this->w->__invoke( $value );
-            $merged = $this->db->merge( $this->recs, true );
+            $this->db->merge( $this->recs, true );
             $this->recs = [];
         }
-
-        return $merged;
     }
 
     public function setKeyValue( $key, $value )
