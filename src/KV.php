@@ -65,6 +65,7 @@ class KV
     {
         if( false === ( $this->high = $this->db->getHigh( 0 ) ) )
             $this->high = 0;
+        return $this->high;
     }
 
     public function merge()
