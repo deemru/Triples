@@ -82,12 +82,15 @@ class KV
 
     public function setKeyValue( $key, $value )
     {
-        if( isset( $this->vk ) && isset( $this->kv[$key] ) )
-            $this->vk[$this->kv[$key]] = false;
+        if( isset( $this->vk ) )
+        {
+            if( isset( $this->kv[$key] ) )
+                $this->vk[$this->kv[$key]] = false;
+            $this->vk[$value] = $key;
+        }
 
         $this->kv[$key] = $value;
-        if( isset( $this->vk ) )
-            $this->vk[$value] = $key;
+
         if( isset( $this->hits ) )
             $this->hits[$key] = 1;
 
@@ -99,8 +102,6 @@ class KV
 
     public function getKeyByValue( $value )
     {
-        assert( isset( $this->vk ) );
-
         if( isset( $this->vk[$value] ) )
         {
             $key = $this->vk[$value];
@@ -108,6 +109,9 @@ class KV
                 ++$this->hits[$key];
             return $key;
         }
+        else
+        if( !isset( $this->vk ) )
+            return false;
 
         if( isset( $this->db ) )
         {
@@ -173,33 +177,36 @@ class KV
 
     public function cacheHalving()
     {
-        assert( isset( $this->hits ) );
-
         $this->merge();
+        $half = count( $this->kv ) >> 1;
 
-        $kv = [];
-        if( isset( $this->vk ) )
-            $vk = [];
-        $hits = [];
-
-        arsort( $this->hits );
-        $invalid = count( $this->hits ) >> 1;
-        $i = 0;
-        foreach( $this->hits as $key => $num )
+        if( isset( $this->hits ) )
         {
-            if( ++$i > $invalid )
-                break;
+            arsort( $this->hits );
+            $this->hits = array_slice( $this->hits, 0, $half, true );
+            $kv = [];
+            if( isset( $this->vk ) )
+                $this->vk = [];
+            foreach( $this->hits as $key => $weight )
+            {
+                $this->hits[$key] = $weight >> 1;
+                $kv[$key] = $value = $this->kv[$key];
+                if( isset( $this->vk ) )
+                    $this->vk[$value] = $key;
+            }
 
-            $value = $this->kv[$key];
-            $kv[$key] = $value;
-            if( isset( $vk ) )
-                $vk[$value] = $key;
-            $hits[$key] = $num >> 1;
+            $this->kv = $kv;
         }
-
-        $this->kv = $kv;
-        if( isset( $this->vk ) )
-            $this->vk = $vk;
-        $this->hits = $hits;
+        else
+        {
+            shuffle( $this->kv );
+            $this->kv = array_slice( $this->kv, 0, $half, true );
+            if( isset( $this->vk ) )
+            {
+                $this->vk = [];
+                foreach( $this->kv as $key => $value )
+                    $this->vk[$value] = $key;
+            }
+        }
     }
 }
